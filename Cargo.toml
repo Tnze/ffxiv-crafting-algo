@@ -1,0 +1,11 @@
+[package]
+name = "ffxiv-crafting-algo"
+version = "0.1.0"
+edition = "2021"
+description = "用于暴力搜索FF14生产宏的小工具。"
+keywords = ["ffxiv", "ff14"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ffxiv-crafting = "0.1"

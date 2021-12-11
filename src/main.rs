@@ -144,7 +144,7 @@ impl From<&Status> for Score {
 }
 
 impl Ord for Score {
-    /// 定义Score之间的偏序关系，这里不使用Ord是因为避免麻烦
+    /// 定义Score之间的偏序关系
     /// * 品质更高的分数更高
     /// * 品质相同，步数越短分数越高
     /// * 品质和步数都相同，两个分数相等

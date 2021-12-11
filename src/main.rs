@@ -1,24 +1,79 @@
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::{Input, Select};
 use ffxiv_crafting::{export, Attributes, Recipe, Skills, Status};
 use std::cmp::Ordering;
+use std::error::Error;
 
-fn main() {
-    let attributes = Attributes {
-        level: 80,
-        craftsmanship: 2806,
-        control: 2818,
-        craft_points: 557,
-    };
-    let recipe = Recipe::new(412, 77, 3586, 15742, 80, 15);
-    let status = Status::new(attributes, recipe);
-    let (best_list, Score { quality, steps }) = dfs_search(&status, 7);
-    println!(
-        "{}# 品质：{}，步数：{}",
-        export::to_chinese_macro(&best_list),
-        quality,
-        steps,
-    );
+fn main() -> Result<(), Box<dyn Error>> {
+    let theme = ColorfulTheme::default();
+    println!("欢迎使用FFXIV生产宏深度优先搜索程序");
+    loop {
+        let attributes = Attributes {
+            level: Input::with_theme(&theme)
+                .with_prompt("玩家等级(player level)")
+                .default(80)
+                .interact()?,
+            craftsmanship: Input::with_theme(&theme)
+                .with_prompt("制作精度(craftsmanship)")
+                .interact()?,
+            control: Input::with_theme(&theme)
+                .with_prompt("加工精度(control)")
+                .interact()?,
+            craft_points: Input::with_theme(&theme)
+                .with_prompt("制作力(craft points)")
+                .interact()?,
+        };
+        let rlv = Input::with_theme(&theme)
+            .with_prompt("配方品级(recipe level)")
+            .interact()?;
+        let recipe = Recipe::new(
+            rlv,
+            Input::with_theme(&theme)
+                .with_prompt("配方玩家等级(recipe player level)")
+                .default(rlv_to_job_level(rlv))
+                .interact()?,
+            Input::with_theme(&theme)
+                .with_prompt("配方难度(difficulty)")
+                .interact()?,
+            Input::with_theme(&theme)
+                .with_prompt("配方品质(quality)")
+                .interact()?,
+            Input::with_theme(&theme)
+                .with_prompt("配方耐久(durability)")
+                .interact()?,
+            Input::with_theme(&theme)
+                .with_prompt("制作状态标志(conditions flag)")
+                .default(15)
+                .interact()?,
+        );
+        let status = Status::new(attributes, recipe);
+        let depth = Input::with_theme(&theme)
+            .with_prompt("限制搜索深度(search depth)")
+            .default(6)
+            .interact()?;
+        println!("正在进行深度优先搜索，请稍等");
+        let (best_list, Score { quality, steps }) = dfs_search(&status, depth);
+        println!(
+            "{}# 品质：{}，步数：{}",
+            export::to_chinese_macro(&best_list),
+            quality,
+            steps,
+        );
+        if 0 == Select::with_theme(&theme)
+            .with_prompt("搜索完毕，是否再来一次？")
+            .default(0)
+            .item("退出")
+            .item("重试")
+            .interact()? {
+            return Ok(());
+        }
+    }
 }
 
+/// 进行一次深度优先搜索（DFS）
+///
+/// status为开始制作时的初始状态
+/// maximum_depth为限制最深搜索深度
 fn dfs_search(status: &Status, maximum_depth: i32) -> (Vec<Skills>, Score) {
     let mut best_list = Vec::new();
     let mut best_score = Score::from(status);
@@ -43,6 +98,7 @@ fn dfs_search(status: &Status, maximum_depth: i32) -> (Vec<Skills>, Score) {
             *best_score = score;
             *best_seq = stack_seq.clone();
         }
+        // 简单的剪枝，排除比当前最优解更深的分支。
         let is_best_quality_full = best_score.quality >= status.recipe.quality;
         let is_this_steps_longer = current_depth >= best_score.steps;
         if is_best_quality_full && is_this_steps_longer || current_depth > maximum_depth {
@@ -148,3 +204,40 @@ const SKILL_LIST: [Skills; 24] = [
     Skills::Observe,
     Skills::FinalAppraisal,
 ];
+
+fn rlv_to_job_level(rlv: i32) -> i32 {
+    match rlv {
+        x if x < 50 => x,
+        x if x < 115 => 50,
+        x if x < 124 => 51,
+        x if x < 130 => 52,
+        x if x < 133 => 53,
+        x if x < 136 => 54,
+        x if x < 139 => 55,
+        x if x < 142 => 56,
+        x if x < 145 => 57,
+        x if x < 148 => 58,
+        x if x < 150 => 59,
+        x if x < 255 => 60,
+        x if x < 265 => 61,
+        x if x < 270 => 62,
+        x if x < 273 => 63,
+        x if x < 276 => 64,
+        x if x < 279 => 65,
+        x if x < 282 => 66,
+        x if x < 285 => 67,
+        x if x < 288 => 68,
+        288 | 289 => 69,
+        x if x < 381 => 70,
+        x if x < 395 => 71,
+        x if x < 400 => 72,
+        x if x < 403 => 73,
+        x if x < 406 => 74,
+        x if x < 409 => 75,
+        x if x < 412 => 76,
+        x if x < 415 => 77,
+        x if x < 418 => 78,
+        x if x < 430 => 79,
+        _ => 80,
+    }
+}
